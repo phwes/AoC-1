@@ -1,3 +1,5 @@
+const FILE_PATH: &str = "res/test.txt";
+
 fn main() {
-    println!("Hello, world!");
+    std::fs::read_to_string(FILE_PATH).unwrap();
 }
