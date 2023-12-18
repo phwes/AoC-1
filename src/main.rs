@@ -1,99 +1,144 @@
-use std::char;
+const FILE_PATH: &str = "res/input.txt";
 
-const FILE_PATH: &str = "res/test.txt";
+fn get_start_of_number(line: &String, char_j: usize) -> usize {
+    let mut current_char_position = char_j;
+    let mut current_char: char;
 
-fn char_is_sign(char: char) -> bool {
-    if char == '.' || char.is_digit(10) {
-        return false;
-    }
-    return true;
-}
-
-fn find_start_at_number(matrix: &Vec<String>, i: usize, j: usize) -> usize {
-    println!("char: {}", matrix[i].chars().nth(j).unwrap());
-    let mut current_j = j;
-    if !matrix[i].chars().nth(current_j).unwrap().is_digit(10) {
-        panic!("No number at this position");
-    }
-
-    while current_j > 0 {
-        let char = matrix[i].chars().nth(current_j - 1).unwrap();
-        if char_is_sign(char) {
-            current_j += 1;
+    loop {
+        current_char = line.chars().nth(current_char_position).unwrap();
+        if !current_char.is_digit(10) {
+            current_char_position += 1;
             break;
         }
-        current_j -= 1;
+        if current_char_position == 0 {
+            break;
+        }
+        current_char_position -= 1;
     }
 
-    return current_j;
+    current_char_position
 }
 
-fn get_number_at(matrix: &Vec<String>, i: usize, j: usize) -> i32 {
+fn left_number(line: &String, char_j: usize) -> i32 {
+    let first_char = line.chars().nth(char_j - 1).unwrap();
+    if !first_char.is_digit(10) {
+        return 0;
+    }
+
     let mut number = String::new();
-    let mut current_char = matrix[i].chars().nth(j).unwrap();
-    let mut current_j = find_start_at_number(matrix, i, j);
-
-    while current_char.is_digit(10) {
-        number.push(current_char);
-
-        if current_j == matrix[i].len() - 1 {
+    let first_char_position = get_start_of_number(line, char_j - 1);
+    for char in line.chars().skip(first_char_position) {
+        if char.is_digit(10) {
+            number.push(char);
+        } else {
             break;
         }
+    }
 
-        current_j += 1;
-        current_char = matrix[i].chars().nth(current_j).unwrap();
+    number.chars().collect::<String>().parse::<i32>().unwrap()
+}
+
+fn right_number(line: &String, char_j: usize) -> i32 {
+    let first_char = line.chars().nth(char_j + 1).unwrap();
+    if !first_char.is_digit(10) {
+        return 0;
+    }
+
+    let mut number = String::new();
+    for char in line.chars().skip(char_j + 1) {
+        if char.is_digit(10) {
+            number.push(char);
+        } else {
+            break;
+        }
+    }
+    number.parse::<i32>().unwrap()
+}
+
+fn middle_number(line: &String, char_j: usize) -> i32 {
+    let middle_char = line.chars().nth(char_j).unwrap();
+    if !middle_char.is_digit(10) {
+        return 0;
+    }
+
+    let first_char_position = get_start_of_number(line, char_j);
+
+    let mut number = String::new();
+    for char in line.chars().skip(first_char_position) {
+        if char.is_digit(10) {
+            number.push(char);
+        } else {
+            break;
+        }
     }
 
     number.parse::<i32>().unwrap()
 }
 
-fn get_adjacent_numbers_sum(matrix: &Vec<String>, i: usize, j: usize) -> i32 {
-    let mut adjacent_numbers = 0;
-    let mut product = 1;
+fn gear_ratio(matrix: &Vec<String>, line_i: usize, char_j: usize) -> i32 {
+    let line_length = matrix[0].len();
+    let mut n_numbers = 0;
+    let mut ratio = 1;
 
-    if i > 0 {
-        let char = matrix[i - 1].chars().nth(j).unwrap();
-        if char.is_digit(10) {
-            adjacent_numbers += 1;
-            product *= get_number_at(matrix, i - 1, j)
+    if char_j != 0 {
+        let left_n = left_number(&matrix[line_i], char_j);
+        if left_n != 0 {
+            ratio *= left_n;
+            n_numbers += 1;
         }
     }
 
-    if i < matrix.len() - 1 {
-        let char = matrix[i + 1].chars().nth(j).unwrap();
-        if char.is_digit(10) {
-            adjacent_numbers += 1;
-            product *= get_number_at(matrix, i + 1, j)
+    if char_j != line_length - 1 {
+        let right_n = right_number(&matrix[line_i], char_j);
+        if right_n != 0 {
+            ratio *= right_n;
+            n_numbers += 1;
         }
     }
 
-    if j > 0 {
-        let char = matrix[i].chars().nth(j - 1).unwrap();
-        if char.is_digit(10) {
-            adjacent_numbers += 1;
-            product *= get_number_at(matrix, i, j - 1)
-        } else if i > 0 {
-            let char = matrix[i - 1].chars().nth(j - 1).unwrap();
-            if char.is_digit(10) {
-                adjacent_numbers += 1;
-                product *= get_number_at(matrix, i - 1, j - 1)
+    if line_i != 0 {
+        let top_middle_number = middle_number(&matrix[line_i - 1], char_j);
+        if top_middle_number != 0 {
+            ratio *= top_middle_number;
+            n_numbers += 1;
+        } else {
+            let top_left_number = left_number(&matrix[line_i - 1], char_j);
+            let top_right_number = right_number(&matrix[line_i - 1], char_j);
+            if top_left_number != 0 {
+                ratio *= top_left_number;
+                n_numbers += 1;
+            }
+            if top_right_number != 0 {
+                ratio *= top_right_number;
+                n_numbers += 1;
             }
         }
     }
 
-    if j < matrix[i].len() - 1 {
-        let char = matrix[i].chars().nth(j + 1).unwrap();
-        if char.is_digit(10) {
-            adjacent_numbers += 1;
-            product *= get_number_at(matrix, i, j + 1)
+    if line_i != line_length - 1 {
+        let bottom_middle_number = middle_number(&matrix[line_i + 1], char_j);
+        if bottom_middle_number != 0 {
+            ratio *= bottom_middle_number;
+            n_numbers += 1;
+        } else {
+            let bottom_left_number = left_number(&matrix[line_i + 1], char_j);
+            let bottom_right_number = right_number(&matrix[line_i + 1], char_j);
+            if bottom_left_number != 0 {
+                ratio *= bottom_left_number;
+                n_numbers += 1;
+            }
+            if bottom_right_number != 0 {
+                ratio *= bottom_right_number;
+                n_numbers += 1;
+            }
         }
     }
-    print!("Adjacent numbers: {}\n", adjacent_numbers);
-    if adjacent_numbers < 2 {
-        return 0;
+
+    if n_numbers == 2 {
+        return ratio;
     }
 
-    return product; // Calculate adjacent numbers
+    return 0;
 }
 
 fn main() {
@@ -104,18 +149,12 @@ fn main() {
         .collect::<Vec<String>>();
 
     let mut sum = 0;
-    let mut add_number_to_sum = false;
-    let mut current_number = String::new();
-
-    for i in 0..matrix.len() {
-        for j in 0..matrix[i].len() {
-            let char = matrix[i].chars().nth(j).unwrap();
-
-            if char != '*' {
-                continue;
+    for (line_i, line) in matrix.iter().enumerate() {
+        for (char_j, char) in line.chars().enumerate() {
+            if char == '*' {
+                sum += gear_ratio(&matrix, line_i, char_j);
             }
-            sum += get_adjacent_numbers_sum(&matrix, i, j);
         }
     }
-    print!("Sum: {}", sum)
+    println!("sum: {}", sum)
 }
